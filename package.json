@@ -1,0 +1,32 @@
+{
+  "name": "web_node3",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon app.js",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ottopar/WEB_NODE3.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ottopar/WEB_NODE3/issues"
+  },
+  "homepage": "https://github.com/ottopar/WEB_NODE3#readme",
+  "description": "",
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "eslint": "^9.23.0",
+    "globals": "^16.0.0",
+    "nodemon": "^3.1.9"
+  },
+  "type": "module",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
