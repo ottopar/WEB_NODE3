@@ -42,12 +42,13 @@ const modifyCat = async (cat, id, user) => {
   let sql;
   let params;
 
-  if (user.role === "admin") {
+  if (user.role !== "admin") {
+    const { owner, ...updateData } = cat;
+    sql = "UPDATE wsk_cats SET ? WHERE cat_id = ? AND owner = ?";
+    params = [updateData, id, user.user_id];
+  } else {
     sql = "UPDATE wsk_cats SET ? WHERE cat_id = ?";
     params = [cat, id];
-  } else {
-    sql = "UPDATE wsk_cats SET ? WHERE cat_id = ? AND owner = ?";
-    params = [cat, id, user.user_id];
   }
 
   const [rows] = await promisePool.execute(promisePool.format(sql, params));

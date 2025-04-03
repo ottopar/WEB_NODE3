@@ -17,15 +17,17 @@ const findUserById = async (id) => {
 };
 
 const addUser = async (user) => {
-  const { name, username, email, password } = user;
-  const sql = `INSERT INTO wsk_users (name, username, email, password, role) 
-               VALUES (?, ?, ?, ?, ?)`;
-  const params = [name, username, email, password, user.role || "user"];
-  const [rows] = await promisePool.execute(sql, params);
-  if (rows.affectedRows === 0) {
-    return false;
+  try {
+    const { name, username, email, password } = user;
+    const sql = `INSERT INTO wsk_users (name, username, email, password, role) 
+                 VALUES (?, ?, ?, ?, ?)`;
+    const params = [name, username, email, password, user.role || "user"];
+    const [rows] = await promisePool.execute(sql, params);
+    return { user_id: rows.insertId };
+  } catch (error) {
+    console.error("Database error:", error);
+    throw error;
   }
-  return { user_id: rows.insertId };
 };
 
 const modifyUser = async (user, id, currentUser) => {

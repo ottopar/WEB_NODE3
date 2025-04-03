@@ -11,21 +11,15 @@ const createThumbnail = async (req, res, next) => {
   if (!req.file) {
     return next();
   }
-  console.log(req.file.path);
-  // TODO: use file path to create 160x160 png thumbnail with sharp
-  const inputPath = req.file.path;
-  const outputPath = `${req.file.destination}/${req.file.filename}_thumb.png`;
-  console.log(outputPath);
-  await sharp(inputPath)
-    .resize(160, 160)
-    .toFile(outputPath, (err, info) => {
-      if (err) {
-        console.error("Error creating thumbnail:", err);
-        return next(err);
-      }
-      console.log("Thumbnail created:", info);
-    });
-  next();
+  try {
+    const inputPath = req.file.path;
+    const outputPath = `${req.file.destination}/${req.file.filename}_thumb.png`;
+    await sharp(inputPath).resize(160, 160).toFormat("png").toFile(outputPath);
+    next();
+  } catch (err) {
+    console.error("Error creating thumbnail:", err);
+    next(err);
+  }
 };
 
 const authenticateToken = (req, res, next) => {
@@ -59,18 +53,20 @@ const checkOwnership = (type) => {
       }
 
       if (type === "user") {
-        // For user routes, check if the user is modifying their own profile
-        if (req.params.id === user.user_id.toString()) {
+        // Convert both to numbers for comparison
+        if (parseInt(req.params.id) === parseInt(user.user_id)) {
           return next();
         }
       } else if (type === "cat") {
-        // For cat routes, check if the user owns the cat
         const [rows] = await promisePool.execute(
           "SELECT owner FROM wsk_cats WHERE cat_id = ?",
           [req.params.id]
         );
-
-        if (rows.length > 0 && rows[0].owner === user.user_id) {
+        // Convert both to numbers for comparison
+        if (
+          rows.length > 0 &&
+          parseInt(rows[0].owner) === parseInt(user.user_id)
+        ) {
           return next();
         }
       }

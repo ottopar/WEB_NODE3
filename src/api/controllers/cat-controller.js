@@ -31,12 +31,16 @@ const getCatById = async (req, res) => {
 const postCat = async (req, res) => {
   console.log("Form data:", req.body);
   console.log("File:", req.file);
+  console.log("User:", res.locals.user); // Add this to verify user data
 
   try {
     const catData = {
       ...req.body,
+      owner: res.locals.user.user_id, // Make sure owner is set
       filename: req.file ? req.file.filename : null,
     };
+
+    console.log("Cat data to be inserted:", catData); // Add this to verify final data
 
     const result = await addCat(catData);
     if (result.error) {
@@ -48,6 +52,7 @@ const postCat = async (req, res) => {
       cat_id: result.cat_id,
     });
   } catch (error) {
+    console.error("Error adding cat:", error); // Add this for better error logging
     res.status(500).json({ error: error.message });
   }
 };

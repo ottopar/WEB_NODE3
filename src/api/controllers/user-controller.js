@@ -41,18 +41,35 @@ const getUserCatsById = async (req, res) => {
 };
 
 const postUser = async (req, res) => {
-  req.body.password = bcrypt.hashSync(req.body.password, 10);
+  console.log("Registration attempt:", {
+    ...req.body,
+    password: "***hidden***",
+  });
+
   try {
-    const result = await addUser(req.body);
-    if (result.error) {
-      res.status(400).json({ error: result.error });
-      return;
+    // Handle both password and passwd fields
+    const password = req.body.password || req.body.passwd;
+
+    if (!req.body.username || !password || !req.body.email || !req.body.name) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userData = {
+      name: req.body.name,
+      username: req.body.username,
+      email: req.body.email,
+      password: hashedPassword,
+    };
+
+    const result = await addUser(userData);
     res.status(201).json({
-      message: "New user added.",
+      message: "User created successfully",
       user_id: result.user_id,
     });
   } catch (error) {
+    console.error("Registration error details:", error);
     res.status(500).json({ error: error.message });
   }
 };
