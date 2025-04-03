@@ -26,16 +26,21 @@ const findCatById = (id) => {
 };
 
 const addCat = (cat) => {
-  const { cat_name, weight, owner, filename, birthdate } = cat;
-  const newId = catItems[0].cat_id + 1;
-  catItems.unshift({
+  if (!cat.cat_name || !cat.weight || !cat.owner || !cat.birthdate) {
+    return { error: "Missing required fields" };
+  }
+
+  const newId = Math.max(...catItems.map((item) => item.cat_id), 0) + 1;
+  const newCat = {
     cat_id: newId,
-    cat_name,
-    weight,
-    owner,
-    filename,
-    birthdate,
-  });
+    cat_name: cat.cat_name,
+    weight: cat.weight,
+    owner: cat.owner,
+    filename: cat.filename || null,
+    birthdate: cat.birthdate,
+  };
+
+  catItems.unshift(newCat);
   return { cat_id: newId };
 };
 

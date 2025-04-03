@@ -15,12 +15,14 @@ const getCatById = (req, res) => {
 
 const postCat = (req, res) => {
   const result = addCat(req.body);
-  if (result.cat_id) {
-    res.status(201);
-    res.json({ message: "New cat added", result });
-  } else {
-    res.sendStatus(404);
+  if (result.error) {
+    res.status(400).json({ error: result.error });
+    return;
   }
+  res.status(201).json({
+    message: "New cat added.",
+    cat_id: result.cat_id,
+  });
 };
 
 const putCat = (req, res) => {

@@ -26,16 +26,20 @@ const findUserById = (id) => {
 };
 
 const addUser = (user) => {
-  const { name, username, email, role, password } = user;
-  const newId = userItems[0].user_id + 1;
-  userItems.unshift({
+  if (!user.name || !user.username || !user.email || !user.password) {
+    return { error: "Missing required fields" };
+  }
+  const newId = Math.max(...userItems.map((item) => item.user_id), 0) + 1;
+  const newUser = {
     user_id: newId,
-    name,
-    username,
-    email,
-    role,
-    password,
-  });
+    name: user.name,
+    username: user.username,
+    email: user.email,
+    role: user.role || "user",
+    password: user.password,
+  };
+
+  userItems.unshift(newUser);
   return { user_id: newId };
 };
 
