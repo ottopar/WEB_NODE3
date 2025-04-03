@@ -1,46 +1,86 @@
-const userItems = [
-  {
-    user_id: 3609,
-    name: "John Doe",
-    username: "johndoe",
-    email: "john@metropolia.fi",
-    role: "user",
-    password: "password",
-  },
-  {
-    user_id: 9843,
-    name: "Heikki",
-    username: "heikki",
-    email: "heikki@metropolia.fi",
-    role: "user",
-    password: "salasana",
-  },
-];
+import promisePool from "../../utils/database.js";
 
-const listAllUsers = () => {
-  return userItems;
+const listAllUsers = async () => {
+  const [rows] = await promisePool.query("SELECT * FROM wsk_users");
+  return rows;
 };
 
-const findUserById = (id) => {
-  return userItems.find((item) => item.user_id == id);
-};
-
-const addUser = (user) => {
-  if (!user.name || !user.username || !user.email || !user.password) {
-    return { error: "Missing required fields" };
+const findUserById = async (id) => {
+  const [rows] = await promisePool.execute(
+    "SELECT * FROM wsk_users WHERE user_id = ?",
+    [id]
+  );
+  if (rows.length === 0) {
+    return false;
   }
-  const newId = Math.max(...userItems.map((item) => item.user_id), 0) + 1;
-  const newUser = {
-    user_id: newId,
-    name: user.name,
-    username: user.username,
-    email: user.email,
-    role: user.role || "user",
-    password: user.password,
-  };
-
-  userItems.unshift(newUser);
-  return { user_id: newId };
+  return rows[0];
 };
 
-export { listAllUsers, findUserById, addUser };
+const addUser = async (user) => {
+  const { name, username, email, password } = user;
+  const sql = `INSERT INTO wsk_users (name, username, email, password, role) 
+               VALUES (?, ?, ?, ?, ?)`;
+  const params = [name, username, email, password, user.role || "user"];
+  const [rows] = await promisePool.execute(sql, params);
+  if (rows.affectedRows === 0) {
+    return false;
+  }
+  return { user_id: rows.insertId };
+};
+
+const modifyUser = async (user, id) => {
+  const sql = promisePool.format(`UPDATE wsk_users SET ? WHERE user_id = ?`, [
+    user,
+    id,
+  ]);
+  const [rows] = await promisePool.execute(sql);
+  if (rows.affectedRows === 0) {
+    return false;
+  }
+  return { message: "success" };
+};
+
+const removeUser = async (id) => {
+  const connection = await promisePool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Delete user's cats first
+    await connection.execute("DELETE FROM wsk_cats WHERE owner = ?", [id]);
+
+    // Then delete the user
+    const [rows] = await connection.execute(
+      "DELETE FROM wsk_users WHERE user_id = ?",
+      [id]
+    );
+
+    await connection.commit();
+
+    if (rows.affectedRows === 0) {
+      return false;
+    }
+    return { message: "success" };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+const getUserCats = async (userId) => {
+  const [rows] = await promisePool.execute(
+    "SELECT * FROM wsk_cats WHERE owner = ?",
+    [userId]
+  );
+  return rows;
+};
+
+export {
+  listAllUsers,
+  findUserById,
+  addUser,
+  modifyUser,
+  removeUser,
+  getUserCats,
+};
