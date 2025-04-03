@@ -54,11 +54,11 @@ const postCat = async (req, res) => {
 
 const putCat = async (req, res) => {
   try {
-    const result = await modifyCat(req.body, req.params.id);
+    const result = await modifyCat(req.body, req.params.id, res.locals.user);
     if (result) {
       res.json({ message: "Cat updated successfully" });
     } else {
-      res.status(404).json({ error: "Cat not found" });
+      res.status(404).json({ error: "Cat not found or unauthorized" });
     }
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -67,11 +67,11 @@ const putCat = async (req, res) => {
 
 const deleteCat = async (req, res) => {
   try {
-    const result = await removeCat(req.params.id);
+    const result = await removeCat(req.params.id, res.locals.user);
     if (result) {
       res.json({ message: "Cat deleted successfully" });
     } else {
-      res.status(404).json({ error: "Cat not found" });
+      res.status(404).json({ error: "Cat not found or unauthorized" });
     }
   } catch (error) {
     res.status(500).json({ error: error.message });

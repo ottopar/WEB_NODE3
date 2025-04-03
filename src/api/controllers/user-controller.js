@@ -7,6 +7,8 @@ import {
   getUserCats,
 } from "../models/user-model.js";
 
+import bcrypt from "bcrypt";
+
 const getUser = async (req, res) => {
   try {
     const users = await listAllUsers();
@@ -39,6 +41,7 @@ const getUserCatsById = async (req, res) => {
 };
 
 const postUser = async (req, res) => {
+  req.body.password = bcrypt.hashSync(req.body.password, 10);
   try {
     const result = await addUser(req.body);
     if (result.error) {
@@ -56,7 +59,7 @@ const postUser = async (req, res) => {
 
 const putUser = async (req, res) => {
   try {
-    const result = await modifyUser(req.body, req.params.id);
+    const result = await modifyUser(req.body, req.params.id, res.locals.user);
     if (result) {
       res.json({ message: "User updated successfully" });
     } else {
@@ -69,7 +72,7 @@ const putUser = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   try {
-    const result = await removeUser(req.params.id);
+    const result = await removeUser(req.params.id, res.locals.user);
     if (result) {
       res.json({ message: "User deleted successfully" });
     } else {

@@ -28,38 +28,50 @@ const addUser = async (user) => {
   return { user_id: rows.insertId };
 };
 
-const modifyUser = async (user, id) => {
-  const sql = promisePool.format(`UPDATE wsk_users SET ? WHERE user_id = ?`, [
-    user,
-    id,
-  ]);
-  const [rows] = await promisePool.execute(sql);
-  if (rows.affectedRows === 0) {
-    return false;
+const modifyUser = async (user, id, currentUser) => {
+  let sql;
+  let params;
+
+  if (currentUser.role === "admin") {
+    sql = "UPDATE wsk_users SET ? WHERE user_id = ?";
+    params = [user, id];
+  } else {
+    sql = "UPDATE wsk_users SET ? WHERE user_id = ? AND user_id = ?";
+    params = [user, id, currentUser.user_id];
   }
-  return { message: "success" };
+
+  const [rows] = await promisePool.execute(promisePool.format(sql, params));
+  return rows.affectedRows > 0;
 };
 
-const removeUser = async (id) => {
+const removeUser = async (id, currentUser) => {
   const connection = await promisePool.getConnection();
   try {
     await connection.beginTransaction();
 
-    // Delete user's cats first
-    await connection.execute("DELETE FROM wsk_cats WHERE owner = ?", [id]);
-
-    // Then delete the user
-    const [rows] = await connection.execute(
-      "DELETE FROM wsk_users WHERE user_id = ?",
-      [id]
-    );
+    let success = false;
+    if (currentUser.role === "admin") {
+      // Admin can delete any user
+      await connection.execute("DELETE FROM wsk_cats WHERE owner = ?", [id]);
+      const [rows] = await connection.execute(
+        "DELETE FROM wsk_users WHERE user_id = ?",
+        [id]
+      );
+      success = rows.affectedRows > 0;
+    } else {
+      // Regular users can only delete themselves
+      if (currentUser.user_id === parseInt(id)) {
+        await connection.execute("DELETE FROM wsk_cats WHERE owner = ?", [id]);
+        const [rows] = await connection.execute(
+          "DELETE FROM wsk_users WHERE user_id = ?",
+          [id]
+        );
+        success = rows.affectedRows > 0;
+      }
+    }
 
     await connection.commit();
-
-    if (rows.affectedRows === 0) {
-      return false;
-    }
-    return { message: "success" };
+    return success;
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -76,6 +88,17 @@ const getUserCats = async (userId) => {
   return rows;
 };
 
+const login = async (user) => {
+  const sql = `SELECT * FROM wsk_users WHERE username = ?`;
+
+  const [rows] = await promisePool.execute(sql, [user]);
+  console.log("rows", rows);
+  if (rows.length === 0) {
+    return false;
+  }
+  return rows[0];
+};
+
 export {
   listAllUsers,
   findUserById,
@@ -83,4 +106,5 @@ export {
   modifyUser,
   removeUser,
   getUserCats,
+  login,
 };
