@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { login } from "../models/user-model.js";
 
-const authUser = async (req, res) => {
+const authUser = async (req, res, next) => {
   try {
     const result = await login(req.body.username);
 
@@ -12,7 +12,9 @@ const authUser = async (req, res) => {
     );
 
     if (!passwordValid) {
-      return res.sendStatus(401);
+      const error = new Error("Invalid credentials");
+      error.status = 401;
+      return next(error);
     }
 
     const userForToken = {
@@ -29,16 +31,18 @@ const authUser = async (req, res) => {
 
     res.json({ user: userForToken, token });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-const getMe = async (req, res) => {
+const getMe = async (req, res, next) => {
   console.log("getMe", res.locals.user);
   if (res.locals.user) {
     res.json({ message: "token ok", user: res.locals.user });
   } else {
-    res.sendStatus(401);
+    const error = new Error("Unauthorized");
+    error.status = 401;
+    next(error);
   }
 };
 

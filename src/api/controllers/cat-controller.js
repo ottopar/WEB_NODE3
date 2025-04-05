@@ -6,81 +6,77 @@ import {
   removeCat,
 } from "../models/cat-model.js";
 
-const getCat = async (req, res) => {
+const getCat = async (req, res, next) => {
   try {
     const cats = await listAllCats();
     res.json(cats);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const getCatById = async (req, res) => {
+const getCatById = async (req, res, next) => {
   try {
     const cat = await findCatById(req.params.id);
-    if (cat) {
-      res.json(cat);
-    } else {
-      res.sendStatus(404);
+    if (!cat) {
+      const err = new Error("Cat not found");
+      err.status = 404;
+      return next(err);
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json(cat);
+  } catch (err) {
+    next(err);
   }
 };
 
-const postCat = async (req, res) => {
-  console.log("Form data:", req.body);
-  console.log("File:", req.file);
-  console.log("User:", res.locals.user); // Add this to verify user data
-
+const postCat = async (req, res, next) => {
   try {
     const catData = {
       ...req.body,
-      owner: res.locals.user.user_id, // Make sure owner is set
+      owner: res.locals.user.user_id,
       filename: req.file ? req.file.filename : null,
     };
 
-    console.log("Cat data to be inserted:", catData); // Add this to verify final data
-
     const result = await addCat(catData);
     if (result.error) {
-      res.status(400).json({ error: result.error });
-      return;
+      const err = new Error(result.error);
+      err.status = 400;
+      return next(err);
     }
     res.status(201).json({
       message: "New cat added.",
       cat_id: result.cat_id,
     });
-  } catch (error) {
-    console.error("Error adding cat:", error); // Add this for better error logging
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    next(err);
   }
 };
 
-const putCat = async (req, res) => {
+const putCat = async (req, res, next) => {
   try {
     const result = await modifyCat(req.body, req.params.id, res.locals.user);
-    if (result) {
-      res.json({ message: "Cat updated successfully" });
-    } else {
-      res.status(404).json({ error: "Cat not found or unauthorized" });
+    if (!result) {
+      const err = new Error("Cat not found or unauthorized");
+      err.status = 404;
+      return next(err);
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json({ message: "Cat updated successfully" });
+  } catch (err) {
+    next(err);
   }
 };
 
-const deleteCat = async (req, res) => {
+const deleteCat = async (req, res, next) => {
   try {
     const result = await removeCat(req.params.id, res.locals.user);
-    if (result) {
-      res.json({ message: "Cat deleted successfully" });
-    } else {
-      res.status(404).json({ error: "Cat not found or unauthorized" });
+    if (!result) {
+      const err = new Error("Cat not found or unauthorized");
+      err.status = 404;
+      return next(err);
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json({ message: "Cat deleted successfully" });
+  } catch (err) {
+    next(err);
   }
 };
-
 export { getCat, getCatById, postCat, putCat, deleteCat };

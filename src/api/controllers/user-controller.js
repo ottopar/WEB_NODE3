@@ -9,52 +9,48 @@ import {
 
 import bcrypt from "bcrypt";
 
-const getUser = async (req, res) => {
+const getUser = async (req, res, next) => {
   try {
     const users = await listAllUsers();
     res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    next(err);
   }
 };
 
-const getUserById = async (req, res) => {
+const getUserById = async (req, res, next) => {
   try {
     const user = await findUserById(req.params.id);
-    if (user) {
-      res.json(user);
-    } else {
-      res.sendStatus(404);
+    if (!user) {
+      const err = new Error("User not found");
+      err.status = 404;
+      return next(err);
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json(user);
+  } catch (err) {
+    next(err);
   }
 };
 
-const getUserCatsById = async (req, res) => {
+const getUserCatsById = async (req, res, next) => {
   try {
     const cats = await getUserCats(req.params.id);
     res.json(cats);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    next(err);
   }
 };
 
-const postUser = async (req, res) => {
-  console.log("Registration attempt:", {
-    ...req.body,
-    password: "***hidden***",
-  });
-
+const postUser = async (req, res, next) => {
   try {
-    // Handle both password and passwd fields
     const password = req.body.password || req.body.passwd;
 
     if (!req.body.username || !password || !req.body.email || !req.body.name) {
-      return res.status(400).json({ error: "Missing required fields" });
+      const err = new Error("Missing required fields");
+      err.status = 400;
+      return next(err);
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
     const userData = {
       name: req.body.name,
@@ -68,35 +64,36 @@ const postUser = async (req, res) => {
       message: "User created successfully",
       user_id: result.user_id,
     });
-  } catch (error) {
-    console.error("Registration error details:", error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    next(err);
   }
 };
 
-const putUser = async (req, res) => {
+const putUser = async (req, res, next) => {
   try {
     const result = await modifyUser(req.body, req.params.id, res.locals.user);
-    if (result) {
-      res.json({ message: "User updated successfully" });
-    } else {
-      res.status(404).json({ error: "User not found" });
+    if (!result) {
+      const err = new Error("User not found");
+      err.status = 404;
+      return next(err);
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json({ message: "User updated successfully" });
+  } catch (err) {
+    next(err);
   }
 };
 
-const deleteUser = async (req, res) => {
+const deleteUser = async (req, res, next) => {
   try {
     const result = await removeUser(req.params.id, res.locals.user);
-    if (result) {
-      res.json({ message: "User deleted successfully" });
-    } else {
-      res.status(404).json({ error: "User not found" });
+    if (!result) {
+      const err = new Error("User not found");
+      err.status = 404;
+      return next(err);
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    next(err);
   }
 };
 

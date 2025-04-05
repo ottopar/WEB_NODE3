@@ -6,6 +6,8 @@ import sharp from "sharp";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
 import promisePool from "./utils/database.js";
+import { validationResult } from "express-validator";
+import multer from "multer";
 
 const createThumbnail = async (req, res, next) => {
   if (!req.file) {
@@ -21,6 +23,27 @@ const createThumbnail = async (req, res, next) => {
     next(err);
   }
 };
+
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype.startsWith("image/") ||
+    file.mimetype.startsWith("video/")
+  ) {
+    cb(null, true);
+  } else {
+    const error = new Error("Only images and videos are allowed");
+    error.status = 400;
+    cb(error, false);
+  }
+};
+
+const upload = multer({
+  dest: "uploads/",
+  limits: {
+    fileSize: 10 * 1024 * 1024, // max 10 MB
+  },
+  fileFilter: fileFilter,
+});
 
 const authenticateToken = (req, res, next) => {
   console.log("authenticateToken", req.headers);
@@ -78,4 +101,43 @@ const checkOwnership = (type) => {
   };
 };
 
-export { createThumbnail, authenticateToken, checkOwnership };
+const notFoundHandler = (req, res, next) => {
+  const error = new Error(`Not Found - ${req.originalUrl}`);
+  error.status = 404;
+  next(error);
+};
+
+const errorHandler = (err, req, res, next) => {
+  res.status(err.status || 500);
+  res.json({
+    error: {
+      message: err.message,
+      status: err.status || 500,
+    },
+  });
+};
+
+const validationErrors = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const messages = errors
+      .array()
+      .map((error) => `${error.path}: ${error.msg}`)
+      .join(", ");
+    const error = new Error(messages);
+    error.status = 400;
+    next(error);
+    return;
+  }
+  next();
+};
+
+export {
+  upload,
+  createThumbnail,
+  authenticateToken,
+  checkOwnership,
+  notFoundHandler,
+  errorHandler,
+  validationErrors,
+};
